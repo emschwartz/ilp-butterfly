@@ -1,0 +1,22 @@
+{
+  "name": "ilp-butterfly",
+  "version": "0.1.0",
+  "description": "Minimal sending UI for ILP payments",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "browserify ilp-client.js -o ilp-client.bundle.js"
+  },
+  "keywords": [
+    "interledger",
+    "ilp",
+    "metamorphosis"
+  ],
+  "author": "Evan Schwartz <evan@ripple.com>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "browserify": "^14.4.0",
+    "ilp": "^11.2.0",
+    "ilp-plugin-payment-channel-framework": "git+https://github.com/interledgerjs/ilp-plugin-payment-channel-framework.git"
+  }
+}
