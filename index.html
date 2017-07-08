@@ -3,11 +3,22 @@
   <script src="./ilp-client.bundle.js"></script>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
   <script>
+    var Header = {
+      $type: 'div',
+      $components: [{
+        $type: 'h1',
+        $text: 'Butterfly ILP'
+      }, {
+        $type: 'h1',
+        $text: 'A minimal client-side app for sending ILP/SPSP payments',
+        class: 'small'
+      }]
+    }
     var UserDetails = {
       $type: 'form',
       $components: [{
         $type: 'div',
-        class: 'form-group',
+        class: 'form-group col-xs-6',
         id: 'user-details',
         $components: [{
           $type: 'label',
@@ -26,7 +37,7 @@
       $type: 'form',
       $components: [{
         $type: 'div',
-        class: 'form-group',
+        class: 'form-group col-xs-6',
         id: 'send-form',
         $components: [{
           $type: 'label',
@@ -41,7 +52,7 @@
         }]
       }, {
         $type: 'div',
-        class: 'form-group',
+        class: 'form-group col-xs-6',
         $components: [{
           $type: 'label',
           for: 'message',
@@ -55,7 +66,7 @@
         }]
       }, {
         $type: 'div',
-        class: 'form-group',
+        class: 'form-group col-xs-2',
         $components: [{
           $type: 'label',
           for: 'sourceAmount',
@@ -68,11 +79,11 @@
         }]
       }, {
         $type: 'div',
-        class: 'form-group',
+        class: 'form-group col-xs-2',
         $components: [{
           $type: 'label',
           for: 'destinationAmount',
-          $text: 'They Recieve'
+          $text: 'They Get'
         }, {
           $type: 'input',
           type: 'number',
@@ -99,8 +110,12 @@
     }
     ಠᴥಠ = {
       $cell: true,
-      class: 'container',
-      $components: [UserDetails, SendForm]
+      class: 'container-fluid',
+      $components: [
+        Header,
+        UserDetails,
+        SendForm
+      ]
     }
 
 function sendSpspPayment (from, to) {
