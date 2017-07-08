@@ -1,0 +1,138 @@
+<html>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cell/1.1.0/cell.js"></script>
+  <script src="./ilp-client.bundle.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <script>
+    var UserDetails = {
+      $type: 'form',
+      $components: [{
+        $type: 'div',
+        class: 'form-group',
+        id: 'user-details',
+        $components: [{
+          $type: 'label',
+          for: 'tokenUrl',
+          $text: 'Your Token URL'
+        }, {
+          $type: 'input',
+          type: 'email',
+          class: 'form-control',
+          id: 'tokenUri',
+          placeholder: 'prefix:token@host.example/rpc'
+        }]
+      }]
+    }
+    var SendForm = {
+      $type: 'form',
+      $components: [{
+        $type: 'div',
+        class: 'form-group',
+        id: 'send-form',
+        $components: [{
+          $type: 'label',
+          for: 'spspAddress',
+          $text: 'SPSP Address'
+        }, {
+          $type: 'input',
+          type: 'email',
+          class: 'form-control',
+          id: 'spspAddress',
+          placeholder: 'user@ilp-kit.example'
+        }]
+      }, {
+        $type: 'div',
+        class: 'form-group',
+        $components: [{
+          $type: 'label',
+          for: 'message',
+          $text: 'Message'
+        }, {
+          $type: 'input',
+          type: 'text',
+          class: 'form-control',
+          id: 'message',
+          placeholder: 'Isn\'t ILP amazing!?!?'
+        }]
+      }, {
+        $type: 'div',
+        class: 'form-group',
+        $components: [{
+          $type: 'label',
+          for: 'sourceAmount',
+          $text: 'You Send'
+        }, {
+          $type: 'input',
+          type: 'number',
+          class: 'form-control',
+          id: 'sourceAmount'
+        }]
+      }, {
+        $type: 'div',
+        class: 'form-group',
+        $components: [{
+          $type: 'label',
+          for: 'destinationAmount',
+          $text: 'They Recieve'
+        }, {
+          $type: 'input',
+          type: 'number',
+          class: 'form-control',
+          id: 'destinationAmount'
+        }]
+      }, {
+        $type: 'button',
+        type: 'submit',
+        class:  'btn btn-success',
+        $text: 'Send',
+        onclick: function(e) {
+          e.preventDefault()
+          sendSpspPayment(
+            document.getElementById('tokenUri').value,
+            {
+              spspAddress: document.getElementById('spspAddress').value,
+              message: document.getElementById('message').value,
+              sourceAmount: document.getElementById('sourceAmount').value,
+              destinationAmount: document.getElementById('destinationAmount').value
+            })
+        }
+      }]
+    }
+    ಠᴥಠ = {
+      $cell: true,
+      class: 'container',
+      $components: [UserDetails, SendForm]
+    }
+
+function sendSpspPayment (from, to) {
+  if (from.indexOf('http') !== 0) {
+    from = 'https://' + from
+  }
+  var sender = ILP.URL.parse(from)
+  console.log('send from', sender, to)
+
+  var senderAuth = sender.auth.split(':')
+  var plugin = new ILP.Plugin({
+    rpcUri: sender.protocol + '//' + sender.host + sender.path,
+    prefix: senderAuth[0],
+    token: senderAuth[1]
+  })
+  plugin.connect()
+    .then(() => {
+      return ILP.SPSP.quote(plugin, {
+        receiver: to.spspAddress,
+        sourceAmount: to.sourceAmount,
+        destinationAmount: to.destinationAmount
+      })
+    })
+    .then((quote) => {
+      console.log('got quote', quote)
+      quote.message = to.message
+      return SPSP.sendPayment(plugin, quote)
+    })
+    .then((result) => {
+      console.log('sent payment', result)
+    })
+    .catch((err) => console.log('error sending payment', err))
+}
+  </script>
+</html>

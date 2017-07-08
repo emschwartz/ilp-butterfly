@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify ilp-client.js -o ilp-client.bundle.js"
+    "build": "browserify ilp-client.js -o ilp-client.bundle.js -s ILP"
   },
   "keywords": [
     "interledger",
