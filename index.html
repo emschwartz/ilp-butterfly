@@ -2,6 +2,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cell/1.1.0/cell.js"></script>
   <script src="./ilp-client.bundle.js"></script>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" htref="./style.css">
   <script>
     var Header = {
       $type: 'div',
@@ -108,52 +109,107 @@
         }
       }]
     }
+
+    var Activity = {
+      $components: [],
+      class: 'activity container container-fluid',
+      _add: function (data) {
+        this.$components = [makeActivityItem(data)].concat(this.$components).slice(0,20)
+      },
+      $init: function () {
+        var _this = this
+        document.getElementById('tokenUri').addEventListener('input', function (e) {
+          console.log('event listener')
+          var parsed
+          try {
+            parsed = ILP.URL.parse(document.getElementById('tokenUri').value)
+            var protocol = parsed.protocol === 'https' ? 'wss' : 'ws'
+            var auth = parsed.auth.split(':')
+            _this._ws = new WebSocket(protocol + '://' + parsed.hostname + ':8081' + '/ws?prefix=' + auth[0] + '&token=' + auth[1])
+            _this._ws.addEventListener('message', function (event) {
+              _this._add(JSON.parse(event.data))
+            })
+          } catch (err) {
+            console.log(err)
+            return
+          }
+
+        })
+      }
+    }
+
     ಠᴥಠ = {
       $cell: true,
       class: 'container-fluid',
       $components: [
         Header,
         UserDetails,
-        SendForm
+        SendForm,
+        Activity
       ]
     }
 
-function sendSpspPayment (from, to) {
-  if (from.indexOf('http') !== 0) {
-    from = 'https://' + from
-  }
-  var sender = ILP.URL.parse(from)
-  console.log('send from', sender, to)
-
-  var senderAuth = sender.auth.split(':')
-  var plugin = new ILP.Plugin({
-    rpcUri: sender.protocol + '//' + sender.host + sender.path,
-    prefix: senderAuth[0],
-    token: senderAuth[1]
-  })
-  plugin.connect()
-    .then(() => {
-      return ILP.SPSP.quote(plugin, {
-        receiver: to.spspAddress,
-        sourceAmount: to.sourceAmount,
-        destinationAmount: to.destinationAmount
-      })
-    })
-    .then((quote) => {
-      console.log('got quote', quote)
-      quote.message = to.message
-      quote.disableEncryption = true
-      quote.headers = {
-        'Source-Name': 'Butterfly ILP',
-        'Source-Image-Url': 'https://i.imgur.com/6g9ORud.jpg',
-        'Message': to.message
+    function sendSpspPayment (from, to) {
+      if (from.indexOf('http') !== 0) {
+        from = 'https://' + from
       }
-      return ILP.SPSP.sendPayment(plugin, quote)
-    })
-    .then((result) => {
-      console.log('sent payment', result)
-    })
-    .catch((err) => console.log('error sending payment', err))
-}
+      var sender = ILP.URL.parse(from)
+      console.log('send from', sender, to)
+
+      var senderAuth = sender.auth.split(':')
+      var plugin = new ILP.Plugin({
+        rpcUri: sender.protocol + '//' + sender.host + sender.path,
+        prefix: senderAuth[0],
+        token: senderAuth[1]
+      })
+      plugin.connect()
+        .then(() => {
+          return ILP.SPSP.quote(plugin, {
+            receiver: to.spspAddress,
+            sourceAmount: to.sourceAmount,
+            destinationAmount: to.destinationAmount
+          })
+        })
+        .then((quote) => {
+          console.log('got quote', quote)
+          quote.message = to.message
+          quote.disableEncryption = true
+          quote.headers = {
+            'Source-Name': 'Butterfly ILP',
+            'Source-Image-Url': 'https://i.imgur.com/6g9ORud.jpg',
+            'Message': to.message
+          }
+          return ILP.SPSP.sendPayment(plugin, quote)
+        })
+        .then((result) => {
+          console.log('sent payment', result)
+        })
+        .catch((err) => console.log('error sending payment', err))
+    }
+
+    function makeActivityItem (transfer) {
+      var item = {
+        class: 'item hidden',
+        $init: function () {
+          this.class = 'item'
+        },
+        $components: [{
+          $type: 'div',
+          class: 'row',
+          $components: [{
+            $type: 'p',
+            class: 'lead',
+            $text: transfer.expiresAt + ' transfer from ' + transfer.from + ' to ' + transfer.to + ' for ' + transfer.amount
+          }, {
+            $type: 'p',
+            $text: 'transfer id: ' + transfer.id
+          }, {
+            $type: 'p',
+            $text: 'ilp packet: ' + transfer.ilp
+          }]
+        }]
+      }
+      return item
+    }
   </script>
 </html>
