@@ -127,6 +127,12 @@ function sendSpspPayment (from, to) {
     .then((quote) => {
       console.log('got quote', quote)
       quote.message = to.message
+      quote.disableEncryption = true
+      quote.headers = {
+        'Source-Name': 'Butterfly ILP',
+        'Source-Image-Url': 'https://i.imgur.com/6g9ORud.jpg',
+        'Message': to.message
+      }
       return ILP.SPSP.sendPayment(plugin, quote)
     })
     .then((result) => {

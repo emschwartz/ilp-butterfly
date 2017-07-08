@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify ilp-client.js -o ilp-client.bundle.js -s ILP"
+    "build": "webpack ilp-client.js ilp-client.bundle.js --output-library ILP --output-library-target umd"
   },
   "keywords": [
     "interledger",
@@ -15,8 +15,8 @@
   "author": "Evan Schwartz <evan@ripple.com>",
   "license": "Apache-2.0",
   "dependencies": {
-    "browserify": "^14.4.0",
     "ilp": "^11.2.0",
-    "ilp-plugin-payment-channel-framework": "git+https://github.com/interledgerjs/ilp-plugin-payment-channel-framework.git"
+    "ilp-plugin-payment-channel-framework": "git+https://github.com/interledgerjs/ilp-plugin-payment-channel-framework.git",
+    "webpack": "^3.1.0"
   }
 }
