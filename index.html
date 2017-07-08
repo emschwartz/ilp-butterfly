@@ -127,7 +127,7 @@ function sendSpspPayment (from, to) {
     .then((quote) => {
       console.log('got quote', quote)
       quote.message = to.message
-      return SPSP.sendPayment(plugin, quote)
+      return ILP.SPSP.sendPayment(plugin, quote)
     })
     .then((result) => {
       console.log('sent payment', result)
