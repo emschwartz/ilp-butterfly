@@ -83,7 +83,17 @@
           $type: 'input',
           type: 'number',
           class: 'form-control',
-          id: 'sourceAmount'
+          id: 'sourceAmount',
+          oninput: function (e) {
+            getQuote(
+              document.getElementById('ilpToken').value,
+              {
+                spspAddress: document.getElementById('spspAddress').value,
+                message: document.getElementById('message').value,
+                sourceAmount: document.getElementById('sourceAmount').value,
+                destinationAmount: document.getElementById('destinationAmount').value
+              })
+          }
         }]
       }, {
         $type: 'div',
@@ -96,7 +106,17 @@
           $type: 'input',
           type: 'number',
           class: 'form-control',
-          id: 'destinationAmount'
+          id: 'destinationAmount',
+          oninput: function (e) {
+            getQuote(
+              document.getElementById('ilpToken').value,
+              {
+                spspAddress: document.getElementById('spspAddress').value,
+                message: document.getElementById('message').value,
+                sourceAmount: document.getElementById('sourceAmount').value,
+                destinationAmount: document.getElementById('destinationAmount').value
+              })
+          }
         }]
       }, {
         $type: 'button',
@@ -176,14 +196,14 @@
       ]
     }
 
-    function sendSpspPayment (from, to) {
+    function getQuote (from, to) {
       var sender = ILP.parseAuthToken(from)
-      console.log('send from', sender, to)
+      console.log('get quote from', sender, to)
 
       var plugin = new ILP.Plugin({
         rpcUri: sender.protocol + '//' + sender.host + sender.path,
-        prefix: sender.username,
-        token: sender.password
+        prefix: sender.prefix,
+        token: sender.token
       })
       plugin.connect()
         .then(() => {
@@ -195,6 +215,33 @@
         })
         .then((quote) => {
           console.log('got quote', quote)
+          if (!to.sourceAmount) {
+            document.getElementById('sourceAmount').value = quote.sourceAmount
+          } else if (!to.destinationAmount) {
+            document.getElementById('destinationAmount').value = quote.destinationAmount
+          }
+        })
+    }
+
+    function sendSpspPayment (from, to) {
+      var sender = ILP.parseAuthToken(from)
+      console.log('send from', sender, to)
+
+      var plugin = new ILP.Plugin({
+        rpcUri: sender.protocol + '//' + sender.host + sender.path,
+        prefix: sender.prefix,
+        token: sender.token
+      })
+      plugin.connect()
+        .then(() => {
+          return ILP.SPSP.quote(plugin, {
+            receiver: to.spspAddress,
+            // TODO use the original quote we got
+            sourceAmount: to.sourceAmount
+          })
+        })
+        .then((quote) => {
+          console.log('got quote', quote)
           quote.message = to.message
           quote.disableEncryption = true
           quote.headers = {
@@ -202,6 +249,7 @@
             'Source-Image-Url': 'https://i.imgur.com/6g9ORud.jpg',
             'Message': to.message
           }
+          console.log('sending spsp payment', quote)
           return ILP.SPSP.sendPayment(plugin, quote)
         })
         .then((result) => {

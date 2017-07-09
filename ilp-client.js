@@ -14,7 +14,7 @@ exports.parseAuthToken = function (string) {
   const uri = Buffer.from(string, 'base64').toString('utf8')
   let parsed = URL.parse(uri)
   const auth = parsed.auth.split(':')
-  parsed.prefix = auth.username
-  parsed.token = auth.password
+  parsed.prefix = auth[0]
+  parsed.token = auth[1]
   return parsed
 }
