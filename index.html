@@ -20,17 +20,24 @@
       $components: [{
         $type: 'div',
         class: 'form-group col-xs-6',
-        id: 'user-details',
+        id: 'ilp-token-group',
         $components: [{
           $type: 'label',
           for: 'ilpToken',
+          class: 'control-label',
           $text: 'Your ILP Token'
         }, {
           $type: 'input',
-          type: 'text',
+          type: 'password',
           class: 'form-control',
           id: 'ilpToken',
-          placeholder: '(Base64-encoded prefix:token@provider.example/rpc-path)'
+          placeholder: '(ilp_secret:... from your account provider)',
+          $init: function () {
+            this.value = localStorage.getItem('ilpToken')
+            if (!this.value) {
+              this.focus()
+            }
+          }
         }]
       }]
     }
@@ -118,9 +125,13 @@
       },
       $init: function () {
         var _this = this
-        document.getElementById('ilpToken').addEventListener('input', function (e) {
+        var ilpTokenField = document.getElementById('ilpToken')
+        var ilpTokenGroup = document.getElementById('ilp-token-group')
+        connectToProvider()
+        ilpTokenField.addEventListener('input', connectToProvider)
+          function connectToProvider (e) {
           try {
-            var parsed = ILP.parseAuthToken(document.getElementById('ilpToken').value)
+            var parsed = ILP.parseAuthToken(ilpTokenField.value)
             if (!parsed) {
               return
             }
@@ -129,12 +140,28 @@
             _this._ws.addEventListener('message', function (event) {
               _this._add(JSON.parse(event.data))
             })
+
+            _this._ws.addEventListener('open', function () {
+              if (ilpTokenGroup.className.indexOf('has-success') === -1) {
+                ilpTokenGroup.className = ilpTokenGroup.className.replace(' has-error', '')
+                ilpTokenGroup.className += ' has-success'
+              }
+            })
+            _this._ws.addEventListener('error', function () {
+              if (ilpTokenGroup.className.indexOf('has-error') === -1) {
+                ilpTokenGroup.className = ilpTokenGroup.className.replace(' has-success', '')
+                ilpTokenGroup.className += ' has-error'
+              }
+            })
+            localStorage.setItem('ilpToken', ilpTokenField.value)
           } catch (err) {
             console.log(err)
+            if (ilpTokenGroup.className.indexOf('has-error') === -1) {
+              ilpTokenGroup.className += ' has-error'
+            }
             return
           }
-
-        })
+        }
       }
     }
 
