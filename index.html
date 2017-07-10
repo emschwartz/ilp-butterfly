@@ -42,50 +42,93 @@
       }]
     }
     var SendForm = {
-      $type: 'form',
+      $type: 'div',
+      class: 'container',
       $components: [{
-        $type: 'div',
-        class: 'form-group col-xs-6',
-        id: 'send-form',
+        $type: 'form',
         $components: [{
-          $type: 'label',
-          for: 'spspAddress',
-          $text: 'SPSP Address'
+          $type: 'div',
+          class: 'form-group col-xs-6',
+          id: 'send-form',
+          $components: [{
+            $type: 'label',
+            for: 'spspAddress',
+            $text: 'SPSP Address'
+          }, {
+            $type: 'input',
+            type: 'email',
+            class: 'form-control',
+            id: 'spspAddress',
+            placeholder: 'user@ilp-kit.example'
+          }]
         }, {
-          $type: 'input',
-          type: 'email',
-          class: 'form-control',
-          id: 'spspAddress',
-          placeholder: 'user@ilp-kit.example'
-        }]
-      }, {
-        $type: 'div',
-        class: 'form-group col-xs-6',
-        $components: [{
-          $type: 'label',
-          for: 'message',
-          $text: 'Message'
+          $type: 'div',
+          class: 'form-group col-xs-6',
+          $components: [{
+            $type: 'label',
+            for: 'message',
+            $text: 'Message'
+          }, {
+            $type: 'input',
+            type: 'text',
+            class: 'form-control',
+            id: 'message',
+            placeholder: 'Isn\'t ILP amazing!?!?'
+          }]
         }, {
-          $type: 'input',
-          type: 'text',
-          class: 'form-control',
-          id: 'message',
-          placeholder: 'Isn\'t ILP amazing!?!?'
-        }]
-      }, {
-        $type: 'div',
-        class: 'form-group col-xs-2',
-        $components: [{
-          $type: 'label',
-          for: 'sourceAmount',
-          $text: 'You Send'
+          $type: 'div',
+          class: 'form-group col-xs-2',
+          $components: [{
+            $type: 'label',
+            for: 'sourceAmount',
+            $text: 'You Send'
+          }, {
+            $type: 'input',
+            type: 'number',
+            class: 'form-control',
+            id: 'sourceAmount',
+            oninput: function (e) {
+              getQuote(
+                document.getElementById('ilpToken').value,
+                {
+                  spspAddress: document.getElementById('spspAddress').value,
+                  message: document.getElementById('message').value,
+                  sourceAmount: document.getElementById('sourceAmount').value,
+                  destinationAmount: document.getElementById('destinationAmount').value
+                })
+            }
+          }]
         }, {
-          $type: 'input',
-          type: 'number',
-          class: 'form-control',
-          id: 'sourceAmount',
-          oninput: function (e) {
-            getQuote(
+          $type: 'div',
+          class: 'form-group col-xs-2',
+          $components: [{
+            $type: 'label',
+            for: 'destinationAmount',
+            $text: 'They Get'
+          }, {
+            $type: 'input',
+            type: 'number',
+            class: 'form-control',
+            id: 'destinationAmount',
+            oninput: function (e) {
+              getQuote(
+                document.getElementById('ilpToken').value,
+                {
+                  spspAddress: document.getElementById('spspAddress').value,
+                  message: document.getElementById('message').value,
+                  sourceAmount: document.getElementById('sourceAmount').value,
+                  destinationAmount: document.getElementById('destinationAmount').value
+                })
+            }
+          }]
+        }, {
+          $type: 'button',
+          type: 'submit',
+          class:  'btn btn-success',
+          $text: 'Send',
+          onclick: function(e) {
+            e.preventDefault()
+            sendSpspPayment(
               document.getElementById('ilpToken').value,
               {
                 spspAddress: document.getElementById('spspAddress').value,
@@ -95,51 +138,13 @@
               })
           }
         }]
-      }, {
-        $type: 'div',
-        class: 'form-group col-xs-2',
-        $components: [{
-          $type: 'label',
-          for: 'destinationAmount',
-          $text: 'They Get'
-        }, {
-          $type: 'input',
-          type: 'number',
-          class: 'form-control',
-          id: 'destinationAmount',
-          oninput: function (e) {
-            getQuote(
-              document.getElementById('ilpToken').value,
-              {
-                spspAddress: document.getElementById('spspAddress').value,
-                message: document.getElementById('message').value,
-                sourceAmount: document.getElementById('sourceAmount').value,
-                destinationAmount: document.getElementById('destinationAmount').value
-              })
-          }
-        }]
-      }, {
-        $type: 'button',
-        type: 'submit',
-        class:  'btn btn-success',
-        $text: 'Send',
-        onclick: function(e) {
-          e.preventDefault()
-          sendSpspPayment(
-            document.getElementById('ilpToken').value,
-            {
-              spspAddress: document.getElementById('spspAddress').value,
-              message: document.getElementById('message').value,
-              sourceAmount: document.getElementById('sourceAmount').value,
-              destinationAmount: document.getElementById('destinationAmount').value
-            })
-        }
       }]
     }
 
     var Activity = {
       $components: [],
-      class: 'activity container container-fluid',
+      class: 'activity list-group',
+      $type: 'ul',
       _add: function (data) {
         this.$components = [makeActivityItem(data)].concat(this.$components).slice(0,20)
       },
@@ -262,11 +267,11 @@
       var item = {
         class: 'item hidden',
         $init: function () {
-          this.class = 'item'
+          this.className = 'item'
         },
         $components: [{
-          $type: 'div',
-          class: 'row',
+          $type: 'li',
+          class: 'list-group-item',
           $components: [{
             $type: 'p',
             class: 'lead',
