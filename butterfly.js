@@ -1,18 +1,19 @@
 const Header = {
   $type: 'div',
+  class: 'text-center',
   $components: [{
     $type: 'h1',
     $text: 'Butterfly ILP'
   }, {
-    $type: 'h1',
-    $text: 'A minimal client-side app for sending ILP/SPSP payments',
-    class: 'small'
+    $type: 'p',
+    $text: 'Minimal ILP/SPSP client in the browser',
+    class: 'lead'
   }]
 }
 
 const IlpSecretInput = {
   $type: 'div',
-  class: 'form-group col-xs-6',
+  class: 'form-group',
   id: 'ilp-secret-group',
   $components: [
     {
@@ -20,7 +21,8 @@ const IlpSecretInput = {
       for: 'ilp-secret',
       class: 'control-label',
       $text: 'Your ILP Secret'
-    }, {
+    },
+    {
       $type: 'input',
       type: 'password',
       class: 'form-control',
@@ -57,7 +59,10 @@ const IlpSecretInput = {
     }
   ],
   _replaceHighlightClass: function (status) {
-    document.getElementById(this.id).class.replace(/ has-\w+/, '')
+    if (document.getElementById(this.id).class.indexOf('has-' + status) === 0) {
+      return
+    }
+    document.getElementById(this.id).class = document.getElementById(this.id).class.replace(/ has-\w+/g, '')
     document.getElementById(this.id).class += ' has-' + status
   },
   _showWarning: function (text) {
@@ -98,109 +103,264 @@ function tryConnectUsingSecret (ilpSecret) {
 }
 
 const UserDetails = {
-  $type: 'form',
-  $components: [IlpSecretInput],
+  $type: 'div',
+  class: 'col-xs-12',
+  $components:
+    [
+      IlpSecretInput
+    ],
   _plugin: null
+}
+
+const SpspAddressInput = {
+  $type: 'div',
+  class: 'form-group col-xs-12',
+  _spspAddress: null,
+  $components: [
+    {
+      $type: 'label',
+      for: 'spsp-address',
+      $text: 'SPSP Address'
+    },
+    {
+      $type: 'input',
+      type: 'email',
+      class: 'form-control',
+      id: 'spsp-address',
+      placeholder: 'user@ilp-kit.example',
+      oninput: function () {
+        SpspAddressInput._spspAddress = this.value
+      },
+      $update: function () {
+        this.value = this._spspAddress
+      }
+    }
+  ]
+}
+
+const MessageInput = {
+  $type: 'div',
+  class: 'form-group col-xs-12',
+  _message: null,
+  $components: [
+    {
+      $type: 'label',
+      for: 'message',
+      $text: 'Message'
+    },
+    {
+      $type: 'input',
+      type: 'text',
+      class: 'form-control',
+      id: 'message',
+      placeholder: 'Isn\'t ILP amazing!?!?',
+      oninput: function () {
+        MessageInput._message = this.value
+      },
+      $update: function () {
+        this.value = this._message
+      }
+    }
+  ]
+}
+
+const SourceAmountInput = {
+  $type: 'div',
+  class: 'form-group col-xs-6',
+  _sourceAmount: null,
+  $components: [
+    {
+      $type: 'label',
+      for: 'source-amount',
+      $text: 'You Send'
+    },
+    {
+      $type: 'input',
+      type: 'number',
+      class: 'form-control',
+      id: 'source-amount',
+      oninput: function () {
+        SourceAmountInput._sourceAmount = this.value
+        SendForm._getSourceQuote()
+      },
+      $update: function () {
+        this.value = this._sourceAmount
+      }
+    }
+  ]
+}
+
+const DestinationAmountInput = {
+  $type: 'div',
+  class: 'form-group col-xs-6',
+  _destinationAmount: null,
+  $components: [
+    {
+      $type: 'label',
+      for: 'destinationAmount',
+      $text: 'They Get'
+    },
+    {
+      $type: 'input',
+      type: 'number',
+      class: 'form-control',
+      id: 'destination-amount',
+      oninput: function () {
+        DestinationAmountInput._destinationAmount = this.value
+        SendForm._getDestinationQuote()
+      },
+      $update: function () {
+        this.value = this._destinationAmount
+      }
+    }
+  ]
+}
+
+const SendButton = {
+  $type: 'div',
+  $components:
+    [
+      {
+        $type: 'div',
+        class: 'col-xs-4'
+      },
+      {
+        $type: 'button',
+        id: 'send-button',
+        type: 'submit',
+        class:  'btn btn-lg btn-primary col-xs-4',
+        $text: 'Send',
+        onclick: function(e) {
+          e.preventDefault()
+          SendForm._sendPayment()
+        }
+      },
+      {
+        $type: 'div',
+        class: 'col-xs-4'
+      }
+    ],
+  _changeClass: function (status) {
+    const button = document.getElementById(this.$components[1].id)
+    button.class = button.class.replace(/btn-\w{3,}/g, 'btn-' + status)
+  },
+  _showSuccess: function () {
+    this._changeClass('success')
+    const _this = this
+    setTimeout(function () {
+      _this._changeClass('primary')
+    }, 1000)
+  },
+  _showError: function () {
+    this._changeClass('danger')
+    const _this = this
+    setTimeout(function () {
+      _this._changeClass('primary')
+    }, 1000)
+  }
 }
 
 const SendForm = {
   $type: 'div',
-  class: 'container',
-  $components: [{
-    $type: 'form',
-    $components: [{
-      $type: 'div',
-      class: 'form-group col-xs-6',
-      id: 'send-form',
-      $components: [{
-        $type: 'label',
-        for: 'spspAddress',
-        $text: 'SPSP Address'
-      }, {
-        $type: 'input',
-        type: 'email',
-        class: 'form-control',
-        id: 'spspAddress',
-        placeholder: 'user@ilp-kit.example'
-      }]
-    }, {
-      $type: 'div',
-      class: 'form-group col-xs-6',
-      $components: [{
-        $type: 'label',
-        for: 'message',
-        $text: 'Message'
-      }, {
-        $type: 'input',
-        type: 'text',
-        class: 'form-control',
-        id: 'message',
-        placeholder: 'Isn\'t ILP amazing!?!?'
-      }]
-    }, {
-      $type: 'div',
-      class: 'form-group col-xs-2',
-      $components: [{
-        $type: 'label',
-        for: 'sourceAmount',
-        $text: 'You Send'
-      }, {
-        $type: 'input',
-        type: 'number',
-        class: 'form-control',
-        id: 'sourceAmount',
-        oninput: function (e) {
-          getQuote(
-            document.getElementById('ilpToken').value,
+  id: 'send-form',
+  //class: 'container-fluid',
+  _spspAddress: null,
+  _message: null,
+  _sourceAmount: null,
+  _destinationAmount: null,
+  $components:
+    [
+      {
+        $type: 'form',
+        $components:
+          [
             {
-              spspAddress: document.getElementById('spspAddress').value,
-              message: document.getElementById('message').value,
-              sourceAmount: document.getElementById('sourceAmount').value,
-              destinationAmount: document.getElementById('destinationAmount').value
-            })
-        }
-      }]
-    }, {
-      $type: 'div',
-      class: 'form-group col-xs-2',
-      $components: [{
-        $type: 'label',
-        for: 'destinationAmount',
-        $text: 'They Get'
-      }, {
-        $type: 'input',
-        type: 'number',
-        class: 'form-control',
-        id: 'destinationAmount',
-        oninput: function (e) {
-          getQuote(
-            document.getElementById('ilpToken').value,
-            {
-              spspAddress: document.getElementById('spspAddress').value,
-              message: document.getElementById('message').value,
-              sourceAmount: document.getElementById('sourceAmount').value,
-              destinationAmount: document.getElementById('destinationAmount').value
-            })
-        }
-      }]
-    }, {
-      $type: 'button',
-      type: 'submit',
-      class:  'btn btn-success',
-      $text: 'Send',
-      onclick: function(e) {
-        e.preventDefault()
-        sendSpspPayment(
-          document.getElementById('ilpToken').value,
-          {
-            spspAddress: document.getElementById('spspAddress').value,
-            message: document.getElementById('message').value,
-            sourceAmount: document.getElementById('sourceAmount').value,
-            destinationAmount: document.getElementById('destinationAmount').value
-          })
+              $type: 'form',
+              $components:
+                [
+                  SpspAddressInput,
+                  MessageInput,
+                  SourceAmountInput,
+                  DestinationAmountInput,
+                  SendButton
+                ]
+            }
+          ]
       }
-    }]
-  }]
+    ],
+  _quote: null,
+  _getSourceQuote: function () {
+    if (!IlpSecretInput._ilpSecret) {
+      IlpSecretInput._showError('ILP Secret is required')
+      document.getElementById(IlpSecretInput.$components[1].id).focus()
+      this._quote = null
+      return
+    }
+    if (!SpspAddressInput._spspAddress) {
+      document.getElementById(SpspAddressInput.$components[1].id).focus()
+      this._quote = null
+      return
+    }
+    if (!SourceAmountInput._sourceAmount) {
+      this._quote = null
+      return
+    }
+    ILP.SPSP.quote({
+        receiver: SpspAddressInput._spspAddress,
+        sourceAmount: SourceAmountInput._sourceAmount
+    })
+      .then((quote) => {
+        this._quote = quote
+        DestinationAmountInput._destinationAmount = quote.destinationAmount
+      })
+      .catch((err) => {
+        console.error('Error getting quote', err)
+      })
+  },
+  _getDestinationQuote: function () {
+    if (!SpspAddressInput._spspAddress) {
+      document.getElementById(SpspAddressInput.$components[1].id).focus()
+      this._quote = null
+      return
+    }
+    if (!DestinationAmountInput._destinationAmount) {
+      this._quote = null
+      return
+    }
+    ILP.SPSP.quote({
+        receiver: SpspAddressInput._spspAddress,
+        destinationAmount: destinationAmountInput._destinationAmount
+    })
+      .then((quote) => {
+        this._quote = quote
+        SourceAmountInput._sourceAmount = quote.sourceAmount
+      })
+      .catch((err) => {
+        console.error('Error getting quote', err)
+      })
+  },
+  _sendPayment: function () {
+    if (!this._quote) {
+
+    }
+    this._quote.message = MessageInput._message
+    this._quote.disableEncryption = true
+    this._quote.headers = {
+      'Source-Name': 'Butterfly ILP',
+      'Source-Image-Url': 'https://i.imgur.com/6g9ORud.jpg',
+      'Message': MessageInput._message
+    }
+    console.log('Sending SPSP payment', this._quote)
+    ILP.SPSP.sendPayment(plugin, this._quote)
+      .then((result) => {
+        console.log('Sent payment', result)
+        SendButton._showSuccess()
+      })
+      .catch((err) => {
+        console.log('Error sending payment', err)
+        SendButton._showError()
+      })
+  }
 }
 
 const Activity = {
@@ -256,74 +416,31 @@ const Activity = {
   $cell: true,
   class: 'container-fluid',
   $components: [
-    Header,
-    UserDetails,
-    //SendForm,
-    //Activity
+    {
+      $type: 'div',
+      class: 'row',
+      $components: [
+        {
+          $type: 'div',
+          class: 'col-xs-3'
+        },
+        {
+          $type: 'form',
+          class: 'col-xs-6',
+          $components:
+            [
+              Header,
+              UserDetails,
+              SendForm
+            ]
+        },
+        {
+          $type: 'div',
+          class: 'col-xs-3'
+        }
+      ]
+    }
   ]
-}
-
-function getQuote (from, to) {
-  const sender = ILP.Secret.decode(from)
-  console.log('get quote from', sender, to)
-
-  const plugin = new ILP.Plugin({
-    rpcUri: sender.protocol + '//' + sender.host + sender.path,
-    prefix: sender.prefix,
-    token: sender.token
-  })
-  plugin.connect()
-    .then(() => {
-      return ILP.SPSP.quote(plugin, {
-        receiver: to.spspAddress,
-        sourceAmount: to.sourceAmount,
-        destinationAmount: to.destinationAmount
-      })
-    })
-    .then((quote) => {
-      console.log('got quote', quote)
-      if (!to.sourceAmount) {
-        document.getElementById('sourceAmount').value = quote.sourceAmount
-      } else if (!to.destinationAmount) {
-        document.getElementById('destinationAmount').value = quote.destinationAmount
-      }
-    })
-}
-
-function sendSpspPayment (from, to) {
-  const sender = ILP.Secret.decode(from)
-  console.log('send from', sender, to)
-
-  const plugin = new ILP.Plugin({
-    rpcUri: sender.protocol + '//' + sender.host + sender.path,
-    prefix: sender.prefix,
-    token: sender.token
-  })
-  plugin.connect()
-    .then(() => {
-      return ILP.SPSP.quote(plugin, {
-        receiver: to.spspAddress,
-        // TODO use the original quote we got
-        sourceAmount: to.sourceAmount,
-        destinationAmount: (to.sourceAmount ? undefined : to.destinationAmount)
-      })
-    })
-    .then((quote) => {
-      console.log('got quote', quote)
-      quote.message = to.message
-      quote.disableEncryption = true
-      quote.headers = {
-        'Source-Name': 'Butterfly ILP',
-        'Source-Image-Url': 'https://i.imgur.com/6g9ORud.jpg',
-        'Message': to.message
-      }
-      console.log('sending spsp payment', quote)
-      return ILP.SPSP.sendPayment(plugin, quote)
-    })
-    .then((result) => {
-      console.log('sent payment', result)
-    })
-    .catch((err) => console.log('error sending payment', err))
 }
 
 function makeActivityItem (transfer) {
