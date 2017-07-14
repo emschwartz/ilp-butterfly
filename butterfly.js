@@ -1,4 +1,4 @@
-var Header = {
+const Header = {
   $type: 'div',
   $components: [{
     $type: 'h1',
@@ -10,35 +10,102 @@ var Header = {
   }]
 }
 
-var UserDetails = {
-  $type: 'form',
-  $components: [{
-    $type: 'div',
-    class: 'form-group col-xs-6',
-    id: 'ilp-token-group',
-    $components: [{
+const IlpSecretInput = {
+  $type: 'div',
+  class: 'form-group col-xs-6',
+  id: 'ilp-secret-group',
+  $components: [
+    {
       $type: 'label',
-      for: 'ilpToken',
+      for: 'ilp-secret',
       class: 'control-label',
-      $text: 'Your ILP Token'
+      $text: 'Your ILP Secret'
     }, {
       $type: 'input',
       type: 'password',
       class: 'form-control',
-      id: 'ilpToken',
-      placeholder: '(ilp_secret:... from your account provider)',
+      id: 'ilp-secret',
+      placeholder: 'ilp_secret:1:...',
+      _ilpSecret: '',
       $init: function () {
-        this.value = localStorage.getItem('ilpToken')
-        if (!this.value) {
+        this._ilpSecret = localStorage.getItem('ilpSecret')
+      },
+      oninput: function () {
+        this._ilpSecret = this.value
+      },
+      $update: function () {
+        if (!this._ilpSecret) {
           this.focus()
+          return
         }
+        tryConnectUsingSecret(this._ilpSecret)
+          .then((result) => {
+            localStorage.setItem('ilpSecret', this._ilpSecret)
+            UserDetails._plugin = result.plugin
+            if (result.hasWebsocket) {
+              console.log('Connected to ILP provider')
+              IlpSecretInput._showSuccess('Connected')
+            } else {
+              console.log('Connected to ILP provider that does not support Websocket notifications')
+              IlpSecretInput._showWarning('Connected without Websocket Notifications')
+            }
+          })
+          .catch((err) => {
+            IlpSecretInput._showError('Could not connect to ILP provider')
+          })
       }
-    }]
-  }]
+    }
+  ],
+  _replaceHighlightClass: function (status) {
+    document.getElementById(this.id).class.replace(/ has-\w+/, '')
+    document.getElementById(this.id).class += ' has-' + status
+  },
+  _showWarning: function (text) {
+    this._replaceHighlightClass('warning')
+  },
+  _showError: function (text) {
+    this._replaceHighlightClass('error')
+  },
+  _showSuccess: function (text) {
+    this._replaceHighlightClass('success')
+  }
 }
 
-var SendForm = {
-  $type: 'div', class: 'container',
+function tryConnectUsingSecret (ilpSecret) {
+  // Check if ILP Secret is valid
+  let parsed
+  try {
+    parsed = ILP.Secret.decode(ilpSecret)
+    if (!parsed.token || !parsed.prefix || !parsed.rpcUri) {
+      throw new Error('Invalid ILP Secret')
+    }
+  } catch (err) {
+    return Promise.reject(new Error('Invalid ILP Secret'))
+  }
+
+  // Try connecting to provider
+  const plugin = new ILP.Plugin(parsed)
+  return plugin
+    .connect()
+    .then(() => {
+      console.log('Connected to ILP provider')
+      return {
+        plugin: plugin,
+        hasWebsocket: false
+      }
+    })
+  // TODO connect to websocket
+}
+
+const UserDetails = {
+  $type: 'form',
+  $components: [IlpSecretInput],
+  _plugin: null
+}
+
+const SendForm = {
+  $type: 'div',
+  class: 'container',
   $components: [{
     $type: 'form',
     $components: [{
@@ -136,7 +203,7 @@ var SendForm = {
   }]
 }
 
-var Activity = {
+const Activity = {
   $components: [],
   class: 'activity list-group',
   $type: 'ul',
@@ -144,18 +211,18 @@ var Activity = {
     this.$components = [makeActivityItem(data)].concat(this.$components).slice(0,20)
   },
   $init: function () {
-    var _this = this
-    var ilpTokenField = document.getElementById('ilpToken')
-    var ilpTokenGroup = document.getElementById('ilp-token-group')
+    const _this = this
+    const ilpTokenField = document.getElementById('ilpToken')
+    const ilpTokenGroup = document.getElementById('ilp-token-group')
     connectToProvider()
     ilpTokenField.addEventListener('input', connectToProvider)
     function connectToProvider (e) {
       try {
-        var parsed = ILP.Secret.decode(ilpTokenField.value)
+        const parsed = ILP.Secret.decode(ilpTokenField.value)
         if (!parsed) {
           return
         }
-        var protocol = parsed.protocol === 'https' ? 'wss' : 'ws'
+        const protocol = parsed.protocol === 'https' ? 'wss' : 'ws'
         _this._ws = new WebSocket(protocol + '://' + parsed.hostname + ':8081' + '/ws?prefix=' + parsed.prefix + '&token=' + parsed.token)
         _this._ws.addEventListener('message', function (event) {
           _this._add(JSON.parse(event.data))
@@ -191,16 +258,16 @@ var Activity = {
   $components: [
     Header,
     UserDetails,
-    SendForm,
-    Activity
+    //SendForm,
+    //Activity
   ]
 }
 
 function getQuote (from, to) {
-  var sender = ILP.Secret.decode(from)
+  const sender = ILP.Secret.decode(from)
   console.log('get quote from', sender, to)
 
-  var plugin = new ILP.Plugin({
+  const plugin = new ILP.Plugin({
     rpcUri: sender.protocol + '//' + sender.host + sender.path,
     prefix: sender.prefix,
     token: sender.token
@@ -224,10 +291,10 @@ function getQuote (from, to) {
 }
 
 function sendSpspPayment (from, to) {
-  var sender = ILP.Secret.decode(from)
+  const sender = ILP.Secret.decode(from)
   console.log('send from', sender, to)
 
-  var plugin = new ILP.Plugin({
+  const plugin = new ILP.Plugin({
     rpcUri: sender.protocol + '//' + sender.host + sender.path,
     prefix: sender.prefix,
     token: sender.token
@@ -260,7 +327,7 @@ function sendSpspPayment (from, to) {
 }
 
 function makeActivityItem (transfer) {
-  var item = {
+  const item = {
     class: 'item hidden',
     $init: function () {
       this.className = 'item'
