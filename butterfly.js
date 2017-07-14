@@ -15,6 +15,7 @@ const IlpSecretInput = {
   $type: 'div',
   class: 'form-group',
   id: 'ilp-secret-group',
+  _ilpSecret: null,
   $components: [
     {
       $type: 'label',
@@ -28,19 +29,20 @@ const IlpSecretInput = {
       class: 'form-control',
       id: 'ilp-secret',
       placeholder: 'ilp_secret:1:...',
-      _ilpSecret: '',
       $init: function () {
-        this._ilpSecret = localStorage.getItem('ilpSecret')
+        IlpSecretInput._ilpSecret = localStorage.getItem('ilpSecret')
+        this.value = IlpSecretInput._ilpSecret
+        this.oninput()
       },
       oninput: function () {
-        this._ilpSecret = this.value
-        if (!this._ilpSecret) {
+        IlpSecretInput._ilpSecret = this.value
+        if (!IlpSecretInput._ilpSecret) {
           this.focus()
           return
         }
-        tryConnectUsingSecret(this._ilpSecret)
+        tryConnectUsingSecret(IlpSecretInput._ilpSecret)
           .then((result) => {
-            localStorage.setItem('ilpSecret', this._ilpSecret)
+            localStorage.setItem('ilpSecret', IlpSecretInput._ilpSecret)
             UserDetails._plugin = result.plugin
             if (result.hasWebsocket) {
               console.log('Connected to ILP provider with Websocket notifications')
@@ -313,7 +315,8 @@ const SendForm = {
       this._quote = null
       return
     }
-    ILP.SPSP.quote({
+    console.log('Getting quote to ' + SpspAddressInput._spspAddress + ' for source amount: ' + SourceAmountInput._sourceAmount)
+    ILP.SPSP.quote(UserDetails._plugin, {
         receiver: SpspAddressInput._spspAddress,
         sourceAmount: SourceAmountInput._sourceAmount
     })
@@ -335,9 +338,10 @@ const SendForm = {
       this._quote = null
       return
     }
-    ILP.SPSP.quote({
+    console.log('Getting quote to ' + SpspAddressInput._spspAddress + ' for destination amount: ' + DestinationAmountInput._destinationAmount)
+    ILP.SPSP.quote(UserDetails._plugin, {
         receiver: SpspAddressInput._spspAddress,
-        destinationAmount: destinationAmountInput._destinationAmount
+        destinationAmount: DestinationAmountInput._destinationAmount
     })
       .then((quote) => {
         this._quote = quote
