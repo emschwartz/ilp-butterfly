@@ -156,7 +156,7 @@
         ilpTokenField.addEventListener('input', connectToProvider)
           function connectToProvider (e) {
           try {
-            var parsed = ILP.parseAuthToken(ilpTokenField.value)
+            var parsed = ILP.Secret.decode(ilpTokenField.value)
             if (!parsed) {
               return
             }
@@ -202,7 +202,7 @@
     }
 
     function getQuote (from, to) {
-      var sender = ILP.parseAuthToken(from)
+      var sender = ILP.Secret.decode(from)
       console.log('get quote from', sender, to)
 
       var plugin = new ILP.Plugin({
@@ -229,7 +229,7 @@
     }
 
     function sendSpspPayment (from, to) {
-      var sender = ILP.parseAuthToken(from)
+      var sender = ILP.Secret.decode(from)
       console.log('send from', sender, to)
 
       var plugin = new ILP.Plugin({
@@ -242,7 +242,8 @@
           return ILP.SPSP.quote(plugin, {
             receiver: to.spspAddress,
             // TODO use the original quote we got
-            sourceAmount: to.sourceAmount
+            sourceAmount: to.sourceAmount,
+            destinationAmount: (to.sourceAmount ? undefined : to.destinationAmount)
           })
         })
         .then((quote) => {

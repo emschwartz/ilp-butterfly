@@ -17,6 +17,7 @@
   "dependencies": {
     "ilp": "^11.2.0",
     "ilp-plugin-payment-channel-framework": "git+https://github.com/interledgerjs/ilp-plugin-payment-channel-framework.git",
+    "ilp-secret": "^0.1.0",
     "webpack": "^3.1.0"
   }
 }
