@@ -34,8 +34,6 @@ const IlpSecretInput = {
       },
       oninput: function () {
         this._ilpSecret = this.value
-      },
-      $update: function () {
         if (!this._ilpSecret) {
           this.focus()
           return
@@ -45,7 +43,7 @@ const IlpSecretInput = {
             localStorage.setItem('ilpSecret', this._ilpSecret)
             UserDetails._plugin = result.plugin
             if (result.hasWebsocket) {
-              console.log('Connected to ILP provider')
+              console.log('Connected to ILP provider with Websocket notifications')
               IlpSecretInput._showSuccess('Connected')
             } else {
               console.log('Connected to ILP provider that does not support Websocket notifications')
@@ -53,6 +51,7 @@ const IlpSecretInput = {
             }
           })
           .catch((err) => {
+            console.error('Error connecting to ILP provider', err)
             IlpSecretInput._showError('Could not connect to ILP provider')
           })
       }
@@ -82,7 +81,7 @@ function tryConnectUsingSecret (ilpSecret) {
   try {
     parsed = ILP.Secret.decode(ilpSecret)
     if (!parsed.token || !parsed.prefix || !parsed.rpcUri) {
-      throw new Error('Invalid ILP Secret')
+      return Promise.reject(new Error('Invalid ILP Secret'))
     }
   } catch (err) {
     return Promise.reject(new Error('Invalid ILP Secret'))
@@ -93,13 +92,22 @@ function tryConnectUsingSecret (ilpSecret) {
   return plugin
     .connect()
     .then(() => {
-      console.log('Connected to ILP provider')
-      return {
-        plugin: plugin,
-        hasWebsocket: false
-      }
+      console.log('Plugin connected')
+      return Activity._connectToWebsocket(parsed)
+        .then(() => {
+          console.log('Connected to ILP provider')
+          return {
+            plugin: plugin,
+            hasWebsocket: true
+          }
+        })
+        .catch(() => {
+          return {
+            plugin: plugin,
+            hasWebsocket: false
+          }
+        })
     })
-  // TODO connect to websocket
 }
 
 const UserDetails = {
@@ -367,80 +375,45 @@ const Activity = {
   $components: [],
   class: 'activity list-group',
   $type: 'ul',
+  _ws: null,
   _add: function (data) {
     this.$components = [makeActivityItem(data)].concat(this.$components).slice(0,20)
   },
-  $init: function () {
-    const _this = this
-    const ilpTokenField = document.getElementById('ilpToken')
-    const ilpTokenGroup = document.getElementById('ilp-token-group')
-    connectToProvider()
-    ilpTokenField.addEventListener('input', connectToProvider)
-    function connectToProvider (e) {
-      try {
-        const parsed = ILP.Secret.decode(ilpTokenField.value)
-        if (!parsed) {
-          return
-        }
-        const protocol = parsed.protocol === 'https' ? 'wss' : 'ws'
-        _this._ws = new WebSocket(protocol + '://' + parsed.hostname + ':8081' + '/ws?prefix=' + parsed.prefix + '&token=' + parsed.token)
-        _this._ws.addEventListener('message', function (event) {
-          _this._add(JSON.parse(event.data))
+  _connectToWebsocket: function (parsedIlpSecret) {
+    return Promise.resolve()
+      .then((parsedIlpSecret) => {
+        const uri = ILP.URL.parse(parsedIlpSecret.rpcUri)
+        const protocol = parsedIlpSecret.protocol === 'https' ? 'wss' : 'ws'
+        const connectionString = parsedIlpSecret.connectionString
+          .replace('http', 'ws')
+        const websocketUri = ILP.URL.format({
+          protocol: uri.protocol.replace('http', 'ws'),
+          hostname: uri.hostname,
+          // TODO don't hardcode the port
+          port: 8081,
+          path: '/ws',
+          query: {
+            prefix: parsedIlpSecret.prefix,
+            token: parsedIlpSecret.token
+          }
         })
 
-        _this._ws.addEventListener('open', function () {
-          if (ilpTokenGroup.className.indexOf('has-success') === -1) {
-            ilpTokenGroup.className = ilpTokenGroup.className.replace(' has-error', '')
-            ilpTokenGroup.className += ' has-success'
-          }
+        this._ws = new WebSocket(websocketUri)
+        this._ws.addEventListener('message', function (event) {
+          this._add(JSON.parse(event.data))
         })
-        _this._ws.addEventListener('error', function () {
-          if (ilpTokenGroup.className.indexOf('has-error') === -1) {
-            ilpTokenGroup.className = ilpTokenGroup.className.replace(' has-success', '')
-            ilpTokenGroup.className += ' has-error'
-          }
+
+        return new Promise((resolve, reject) => {
+          setTimeout(reject.bind(null, new Error('Websocket connection timed out')), 5000)
+          this._ws.addEventListener('open', function () {
+            resolve()
+          })
+          this._ws.addEventListener('error', function () {
+            reject()
+          })
         })
-        localStorage.setItem('ilpToken', ilpTokenField.value)
-      } catch (err) {
-        console.log(err)
-        if (ilpTokenGroup.className.indexOf('has-error') === -1) {
-          ilpTokenGroup.className += ' has-error'
-        }
-        return
-      }
-    }
+      })
   }
-}
-
-ಠᴥಠ = {
-  $cell: true,
-  class: 'container-fluid',
-  $components: [
-    {
-      $type: 'div',
-      class: 'row',
-      $components: [
-        {
-          $type: 'div',
-          class: 'col-xs-3'
-        },
-        {
-          $type: 'form',
-          class: 'col-xs-6',
-          $components:
-            [
-              Header,
-              UserDetails,
-              SendForm
-            ]
-        },
-        {
-          $type: 'div',
-          class: 'col-xs-3'
-        }
-      ]
-    }
-  ]
 }
 
 function makeActivityItem (transfer) {
@@ -467,3 +440,37 @@ function makeActivityItem (transfer) {
   }
   return item
 }
+
+// Main cell
+ಠᴥಠ = {
+  $cell: true,
+  class: 'container-fluid',
+  $components: [
+    {
+      $type: 'div',
+      class: 'row',
+      $components: [
+        {
+          $type: 'div',
+          class: 'col-xs-3'
+        },
+        {
+          $type: 'form',
+          class: 'col-xs-6',
+          $components:
+            [
+              Header,
+              UserDetails,
+              SendForm,
+              Activity
+            ]
+        },
+        {
+          $type: 'div',
+          class: 'col-xs-3'
+        }
+      ]
+    }
+  ]
+}
+
